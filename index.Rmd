@@ -142,6 +142,7 @@ ggplot() +
 ```
 
 ## Output
+### Shapefile
 
 Write the `metrics` table to a shapefile:
 
@@ -153,3 +154,34 @@ zip(zipfile = "shapefile/metrics.zip", files = files)
 file.remove(files)
 ```
 
+### Map image
+
+This create a high resolution PNG map image.
+
+```{r warning=FALSE, message=FALSE}
+metrics <- st_sf(metrics, sf_column_name = "geometry")
+st_crs(metrics) <- 4326
+
+ggplot() +
+  geom_sf(data = metrics, aes_string(fill = "n", color = "n", geometry = "geometry"), lwd = 0.04) +
+  scale_color_viridis(option = "inferno", na.value = "white", name = "Number of records", trans = "log10") +
+  scale_fill_viridis(option = "inferno", na.value = "white", name = "Number of records", trans = "log10") +
+  geom_sf(data = world, fill = "#dddddd", color = "#666666", lwd = 0.1) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.minor.y = element_blank(), 
+    panel.background = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.position = "none"
+  ) +
+  xlab("") + ylab("") +
+  coord_sf(crs = "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs" )
+
+ggsave("map/map.png", width = 12, height = 6, dpi = 600)
+```
