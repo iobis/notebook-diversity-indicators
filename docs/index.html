@@ -2012,7 +2012,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="output" class="section level2">
 <h2>Output</h2>
 <p>Write the <code>metrics</code> table to a shapefile:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a><span class="kw">file.remove</span>(<span class="st">&quot;shapefile/indicators.shp&quot;</span>)</span>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a><span class="cf">if</span> (<span class="kw">file.exists</span>(<span class="st">&quot;shapefile/indicators.shp&quot;</span>)) <span class="kw">file.remove</span>(<span class="st">&quot;shapefile/indicators.shp&quot;</span>)</span>
 <span id="cb11-2"><a href="#cb11-2"></a><span class="kw">st_write</span>(metrics, <span class="st">&quot;shapefile/indicators.shp&quot;</span>, <span class="dt">layer =</span> <span class="st">&quot;indicators&quot;</span>)</span>
 <span id="cb11-3"><a href="#cb11-3"></a>files &lt;-<span class="st"> </span><span class="kw">dir</span>(<span class="st">&quot;shapefile&quot;</span>, <span class="dt">full.names =</span> <span class="ot">TRUE</span>)</span>
 <span id="cb11-4"><a href="#cb11-4"></a><span class="kw">zip</span>(<span class="dt">zipfile =</span> <span class="st">&quot;shapefile/metrics.zip&quot;</span>, <span class="dt">files =</span> files)</span>

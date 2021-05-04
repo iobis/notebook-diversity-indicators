@@ -146,7 +146,7 @@ ggplot() +
 Write the `metrics` table to a shapefile:
 
 ```{r warning=FALSE, message=FALSE, results='hide'}
-file.remove("shapefile/indicators.shp")
+if (file.exists("shapefile/indicators.shp")) file.remove("shapefile/indicators.shp")
 st_write(metrics, "shapefile/indicators.shp", layer = "indicators")
 files <- dir("shapefile", full.names = TRUE)
 zip(zipfile = "shapefile/metrics.zip", files = files)
