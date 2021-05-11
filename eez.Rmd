@@ -1,0 +1,110 @@
+---
+title: Diversity indicators using OBIS data (EEZ)
+date: "`r Sys.Date()`"
+author: Pieter Provoost
+output: (function(...) {
+  rmdformats::robobook(toc_depth = 4, pandoc_args = c("+RTS", "-K2000m", "-RTS"), ...) })
+editor_options: 
+  chunk_output_type: console
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs") })  
+---
+
+This notebook builds on the main notebook to generate indicator maps for EEZ only.
+
+## Read the occurrence data
+
+```{r message=FALSE, warning=FALSE}
+occ <- readRDS("occurrence.rds")
+```
+
+## Create a discrete global grid
+
+Create an ISEA discrete global grid of resolution 9 using the [dggridR](https://github.com/r-barnes/dggridR) package and assign cell numbers to the occurrence data:
+
+```{r warning=FALSE, message=FALSE}
+library(dggridR)
+
+dggs <- dgconstruct(projection = "ISEA", topology = "HEXAGON", res = 9)
+occ$cell <- dgtransform(dggs, occ$decimallatitude, occ$decimallongitude)
+```
+
+## Calculate metrics
+
+This calculates stations per 1000 square km. Make sure to adjust if the resolution is changed.
+
+```{r warning=FALSE, message=FALSE}
+metrics <- occ %>%
+  group_by(cell, decimallongitude, decimallatitude) %>%
+  summarize(records = sum(records)) %>%
+  group_by(cell) %>%
+  summarize(records = sum(records), stations = n()) %>%
+  mutate(stations = stations / 2591.4 * 1000)
+
+metrics
+```
+
+Add cell geometries to the metrics table:
+
+```{r warning=FALSE, message=FALSE}
+library(sf)
+
+grid <- dgearthgrid(dggs, frame = FALSE, wrapcells = FALSE)
+grid$cell <- names(grid)
+grid_sf <- grid %>%
+  st_as_sf() %>%
+  st_wrap_dateline(options = c("WRAPDATELINE=YES", "DATELINEOFFSET=230"))
+
+grid_cropped <- grid_sf %>% st_crop(c(xmin = -180, ymin = -85, xmax = 180, ymax = 85))
+
+metrics <- merge(metrics, grid_sf, by.x = "cell", by.y = "cell", all.y = TRUE) %>%
+    #filter(st_intersects(geometry, st_as_sfc("SRID=4326;POLYGON((-180 85,180 85,180 -85,-180 -85,-180 85))"), sparse = FALSE)) %>%
+    st_sf()
+```
+
+## Load high seas shapefile
+
+Use the high seas shapefile from https://www.marineregions.org/ to mask the high seas:
+
+```{r warning=FALSE, message=FALSE}
+highseas <- read_sf("World_High_Seas_v1_20200826/High_Seas_v1_densified.shp")
+```
+
+## Create map
+
+```{r warning=FALSE, message=FALSE}
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(viridis)
+library(ggplot2)
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+ggplot() +
+  geom_sf(data = metrics, aes_string(fill = "stations", color = "stations"), lwd = 0.1) +
+  scale_fill_viridis(option = "inferno", na.value = "#000000", name = expression("OBIS: number of stations per 1000"~km^2), trans = "log10") +
+  scale_color_viridis(option = "inferno", na.value = "#000000", name = expression("OBIS: number of stations per 1000"~km^2), trans = "log10") +
+  geom_sf(data = world, fill = "#dddddd", color = NA) +
+  geom_sf(data = highseas, fill = "#ffffff", color = NA, alpha = 0.5) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.minor.y = element_blank(), 
+    panel.background = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.position = "top"
+  ) +
+  guides(fill = guide_colourbar(barwidth = 27, barheight = NULL, title.position = "bottom", title.hjust = 0.5)) +
+  xlab("") +
+  ylab("") +
+  coord_sf(crs = "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+```
+
+```{r warning=FALSE, message=FALSE}
+ggsave("map/map_eez.png", width = 11, height = 6, dpi = 400, scale = 2)
+```
