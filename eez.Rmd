@@ -168,3 +168,33 @@ ggplot() +
 ```{r warning=FALSE, message=FALSE}
 ggsave("map/map_eez_spectral_lines.png", width = 11, height = 6, dpi = 400, scale = 2)
 ```
+
+```{r warning=FALSE, message=FALSE}
+ggplot() +
+  geom_sf(data = metrics, aes_string(fill = "stations", color = "stations"), lwd = 0.1) +
+  scale_fill_distiller(palette = "Spectral", na.value = "#ffffff", name = expression("OBIS: number of stations per 1000"~km^2), trans = "log10") +
+  scale_color_distiller(palette = "Spectral", na.value = "#ffffff", name = expression("OBIS: number of stations per 1000"~km^2), trans = "log10") +
+  geom_sf(data = world, fill = "#dddddd", color = NA) +
+  geom_sf(data = highseas, fill = "#ffffff", color = NA, alpha = 0.5) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.minor.y = element_blank(), 
+    panel.background = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.position = "top"
+  ) +
+  guides(fill = guide_colourbar(barwidth = 27, barheight = NULL, title.position = "bottom", title.hjust = 0.5)) +
+  xlab("") +
+  ylab("") +
+  coord_sf(crs = "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+```
+
+```{r warning=FALSE, message=FALSE}
+ggsave("map/map_eez_spectral_white.png", width = 11, height = 6, dpi = 400, scale = 2)
+```
