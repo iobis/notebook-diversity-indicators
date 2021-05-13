@@ -12,11 +12,13 @@ knit: (function(inputFile, encoding) {
 
 This notebook builds on the main notebook to generate indicator maps for EEZ only.
 
-## Read the occurrence data
+# Read the occurrence data
 
 ```{r message=FALSE, warning=FALSE}
 occ <- readRDS("occurrence.rds")
 ```
+
+# Gridded maps with masked EEZs
 
 ## Create a discrete global grid
 
@@ -34,6 +36,8 @@ occ$cell <- dgtransform(dggs, occ$decimallatitude, occ$decimallongitude)
 This calculates stations per 1000 square km. Make sure to adjust if the resolution is changed.
 
 ```{r warning=FALSE, message=FALSE}
+library(dplyr)
+
 metrics <- occ %>%
   group_by(cell, decimallongitude, decimallatitude) %>%
   summarize(records = sum(records)) %>%
@@ -58,7 +62,6 @@ grid_sf <- grid %>%
 grid_cropped <- grid_sf %>% st_crop(c(xmin = -180, ymin = -85, xmax = 180, ymax = 85))
 
 metrics <- merge(metrics, grid_sf, by.x = "cell", by.y = "cell", all.y = TRUE) %>%
-    #filter(st_intersects(geometry, st_as_sfc("SRID=4326;POLYGON((-180 85,180 85,180 -85,-180 -85,-180 85))"), sparse = FALSE)) %>%
     st_sf()
 ```
 
@@ -197,4 +200,76 @@ ggplot() +
 
 ```{r warning=FALSE, message=FALSE}
 ggsave("map/map_eez_spectral_white.png", width = 11, height = 6, dpi = 400, scale = 2)
+```
+
+# Metrics by EEZ
+
+First create a table of all sampling locations:
+
+```{r warning=FALSE, message=FALSE}
+
+stations <- readRDS("occurrence.rds") %>%
+  group_by(decimallongitude, decimallatitude) %>%
+  summarize(records = sum(records)) %>%
+  st_as_sf(coords = c("decimallongitude", "decimallatitude"), crs = 4326)
+write.csv(stations %>% select(decimallongitude, decimallatitude), file = "stations.csv", row.names = FALSE)
+```
+
+My intention was to count the stations per polygon in R, but for performance reasons I'm using QGIS's `Count points in polygon` instead.
+
+```{r warning=FALSE, message=FALSE}
+# work in progress
+
+#library(furrr)
+#eez <- read_sf("World_EEZ_v11_20191118/eez_v11.shp")
+#future::plan(multiprocess)
+#options(future.globals.maxSize=1e10)
+#pip <- future_map(1:nrow(eez), function(i) {
+#  ns <- sum(st_within(stations$geometry, eez$geometry[i], sparse = FALSE))
+#  return(ns)
+#}, .progress = TRUE)
+```
+
+```{r warning=FALSE, message=FALSE}
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggplot2)
+library(dplyr)
+library(sf)
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+eez <- read_sf("shapefile/eez_v11_counts_simplified.gpkg")
+
+eez <- eez %>%
+  mutate(density = NUMPOINTS / AREA_KM2 * 1000) %>%
+  mutate(bin = cut(density, breaks = c(0, 10, 100, 500, 1000, 11000))) %>%
+  filter(!is.na(bin)) %>%
+  mutate(bin = forcats::fct_recode(bin, "1 - 10" = "(0,10]", "11 - 100" = "(10,100]", "101 - 500" = "(100,500]", "501 - 1000" = "(500,1e+03]", "1001 - 11000" = "(1e+03,1.1e+04]"))
+
+ggplot() +
+  geom_sf(data = eez, aes_string(fill = "bin", color = "bin"), lwd = 0.3, color = "#000000") +
+  scale_fill_brewer(palette = "Spectral", na.value = "#ffffff", name = expression("Number of stations per 1000"~km^2), direction = -1) +
+  scale_color_brewer(palette = "Spectral", na.value = "#ffffff", name = expression("Number of stations per 1000"~km^2), direction = -1) +
+  geom_sf(data = world, fill = "#6c6c61", color = "#000000", lwd = 0.3) +
+  guides(color = guide_legend(ncol = 1), fill = guide_legend(ncol = 1)) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.minor.y = element_blank(), 
+    panel.background = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.position = "bottom"
+  ) +
+  xlab("") +
+  ylab("") +
+  coord_sf()
+```
+
+```{r warning=FALSE, message=FALSE}
+ggsave("map/map_eez_bins.png", width = 11, height = 6, dpi = 400, scale = 2)
 ```
