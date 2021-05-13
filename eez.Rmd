@@ -244,7 +244,7 @@ eez <- eez %>%
   mutate(density = NUMPOINTS / AREA_KM2 * 1000) %>%
   mutate(bin = cut(density, breaks = c(0, 10, 100, 500, 1000, 11000))) %>%
   filter(!is.na(bin)) %>%
-  mutate(bin = forcats::fct_recode(bin, "1 - 10" = "(0,10]", "11 - 100" = "(10,100]", "101 - 500" = "(100,500]", "501 - 1000" = "(500,1e+03]", "1001 - 11000" = "(1e+03,1.1e+04]"))
+  mutate(bin = forcats::fct_recode(bin, "0 - 10" = "(0,10]", "10 - 100" = "(10,100]", "100 - 500" = "(100,500]", "500 - 1000" = "(500,1e+03]", "1000 - 11000" = "(1e+03,1.1e+04]"))
 
 ggplot() +
   geom_sf(data = eez, aes_string(fill = "bin", color = "bin"), lwd = 0.3, color = "#000000") +
