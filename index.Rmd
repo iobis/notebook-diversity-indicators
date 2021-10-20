@@ -14,21 +14,17 @@ This notebook shows how to calculate diversity indicators layers based on OBIS d
 
 ## Read the occurrence data
 
-Exports of all OBIS presence records are available from https://obis.org/manual/access/. Extract the archive, read the location and species identifier columns, and summarize by location:
+Parquet exports of all OBIS presence records are available from https://obis.org/manual/access/. Read the coordinates and species columns, and summarize by location:
 
 ```{r message=FALSE, warning=FALSE}
-library(readr)
+library(arrow)
 library(dplyr)
 
-if (!file.exists("occurrence.rds")) {
-  occ <- read_csv("../occurrence.csv", col_type = cols_only(decimallongitude = col_double(), decimallatitude = col_double(), species = col_character())) %>%
-    group_by(decimallongitude, decimallatitude, species) %>%
-    summarize(records = n()) %>%
-    as_tibble()
-  saveRDS(occ, "occurrence.rds")
-} else {
-  occ <- readRDS("occurrence.rds")
-}
+occ <- open_dataset("~/Desktop/temp/obis_20211017.parquet") %>%
+  select(decimalLongitude, decimalLatitude, species) %>%
+  group_by(decimalLongitude, decimalLatitude, species) %>%
+  collect() %>%
+  summarize(records = n())
 ```
 
 ## Create a discrete global grid
@@ -50,7 +46,7 @@ inf <- dginfo(dggs)
 Then assign cell numbers to the occurrence data:
 
 ```{r warning=FALSE, message=FALSE}
-occ$cell <- dgtransform(dggs, occ$decimallatitude, occ$decimallongitude)
+occ$cell <- dgtransform(dggs, occ$decimalLatitude, occ$decimalLongitude)
 ```
 
 ## Calculate metrics
@@ -102,7 +98,7 @@ Perform the calculation on species level data:
 
 ```{r warning=FALSE, message=FALSE}
 metrics <- occ %>%
-  filter(!is.na(species)) %>%
+  #filter(!is.na(species)) %>%
   calc(50)
 
 metrics
@@ -179,7 +175,7 @@ ggplot() +
     axis.ticks = element_blank(),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
-    legend.position = "none"
+    legend.position = "bottom"
   ) +
   xlab("") + ylab("") +
   coord_sf(crs = "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs" )

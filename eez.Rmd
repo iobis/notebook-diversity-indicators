@@ -207,8 +207,7 @@ ggsave("map/map_eez_spectral_white.png", width = 11, height = 6, dpi = 400, scal
 First create a table of all sampling locations:
 
 ```{r warning=FALSE, message=FALSE}
-
-stations <- readRDS("occurrence.rds") %>%
+stations <- occ %>%
   group_by(decimallongitude, decimallatitude) %>%
   summarize(records = sum(records)) %>%
   st_as_sf(coords = c("decimallongitude", "decimallatitude"), crs = 4326)
