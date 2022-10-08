@@ -20,7 +20,7 @@ Parquet exports of all OBIS presence records are available from https://obis.org
 library(arrow)
 library(dplyr)
 
-occ <- open_dataset("~/Desktop/temp/obis_20211017.parquet") %>%
+occ <- open_dataset("~/Desktop/temp/obis_20220710.parquet") %>%
   select(decimalLongitude, decimalLatitude, species) %>%
   group_by(decimalLongitude, decimalLatitude, species) %>%
   collect() %>%
@@ -46,7 +46,7 @@ inf <- dginfo(dggs)
 Then assign cell numbers to the occurrence data:
 
 ```{r warning=FALSE, message=FALSE}
-occ$cell <- dgtransform(dggs, occ$decimalLatitude, occ$decimalLongitude)
+occ$cell <- dgGEO_to_SEQNUM(dggs, occ$decimalLongitude, occ$decimalLatitude)$seqnum
 ```
 
 ## Calculate metrics
