@@ -3,4 +3,6 @@
 World_High_Seas_v1_20200826
 World_EEZ_v11_20191118
 stations.csv
+*.Rproj
+.Rproj.user
 
